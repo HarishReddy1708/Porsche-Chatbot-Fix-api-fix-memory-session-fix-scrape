@@ -1,0 +1,15 @@
+Metadata-Version: 2.2
+Name: porsche-chatbot
+Version: 0.1
+Requires-Dist: flask
+Requires-Dist: flask-socketio
+Requires-Dist: psutil
+Requires-Dist: python-dotenv
+Requires-Dist: langchain
+Requires-Dist: faiss-cpu
+Requires-Dist: sentence-transformers
+Requires-Dist: requests
+Requires-Dist: beautifulsoup4
+Requires-Dist: playwright
+Requires-Dist: mistralai
+Dynamic: requires-dist

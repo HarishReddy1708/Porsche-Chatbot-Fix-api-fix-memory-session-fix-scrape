@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Environment variables and secrets
+
+# Docker-related
+Dockerfile
+docker-compose.yml
+
+# Virtual environments
+venv/
+
+.venv/
+pip-wheel-metadata/
+
+# Logs
+*.log
+
+# OS or editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,11 @@
+flask
+flask-socketio
+psutil
+python-dotenv
+langchain
+faiss-cpu
+sentence-transformers
+requests
+beautifulsoup4
+playwright
+mistralai
