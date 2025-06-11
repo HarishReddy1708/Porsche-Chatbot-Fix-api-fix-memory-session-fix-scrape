@@ -74,7 +74,7 @@ Compare torque figures: Macan S vs Mercedes GLC AMG 43.
 
 1. Does the Ferrari 488 Pista have more horsepower than the Porsche 911 Turbo S?
 2. Is the Lamborghini Huracán Evo faster in 0-60 mph than the Porsche 911 GT3?
-3. Does the McLaren 720S have a higher top speed than the Porsche 911 Turbo?
+    3. Does the McLaren 720S have a higher top speed than the Porsche 911 Turbo?
 4. Does the Aston Martin Vantage AMR have a more powerful engine than the Porsche 718 Cayman?
 5. Does the Audi R8 V10 Performance accelerate faster than the Porsche 911 Carrera 4S?
 6. Does the Tesla Model S Plaid have better acceleration than the Porsche Taycan Turbo S?
