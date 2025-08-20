@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your-secret-key")
 app.config["SESSION_TYPE"] = "filesystem"
-socketio = SocketIO(app, manage_session=True)
 
-
-
+# Enable CORS for Socket.IO
+# Replace "*" with your frontend URL for production
+socketio = SocketIO(app, manage_session=True, cors_allowed_origins="*")
 
 
 @socketio.on("message")
@@ -82,7 +82,6 @@ def handle_message(message):
 
 
 if __name__ == "__main__":
-    import os
-
     port = int(os.environ.get("PORT", 5000))
+    # Run the app with Socket.IO
     socketio.run(app, host="0.0.0.0", port=port)
