@@ -17,10 +17,7 @@ app.config["SESSION_TYPE"] = "filesystem"
 socketio = SocketIO(app, manage_session=True)
 
 
-@app.route("/")
-def index():
-    session["history"] = []
-    return render_template("index.html")
+
 
 
 @socketio.on("message")
@@ -85,4 +82,7 @@ def handle_message(message):
 
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True, host="127.0.0.1", port=5000)
+    import os
+
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host="0.0.0.0", port=port)

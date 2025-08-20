@@ -10,96 +10,108 @@ from utils.data_loader import data_loader
 import os
 import requests
 from utils.data import extract_competitor_brands
+import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")  # Store in env variable
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")  # Store in env variable\
+
+
+def smart_bias_comparison(porsche_model, competitor_brand, feature=None):
+    """
+    Generates a confident, Porsche-favoring one-liner emphasizing Porsche’s strengths.
+    """
+    feature_text = feature.title() if feature else "performance"
+    model = porsche_model.upper()
+    brand = competitor_brand.title()
+
+    statements = [
+        f"While {brand} offers {feature_text}, the Porsche {model} delivers it with racing precision and unmatched engineering.",
+        f"The Porsche {model} turns every drive into an experience—unlike the more spec-focused {brand}.",
+        f"{brand} might bring speed, but Porsche brings purpose—refined in every curve of the {model}.",
+        f"Few cars handle like a Porsche {model}—especially when competitors like {brand} focus more on numbers than feel.",
+        f"The {model} brings Porsche’s racing DNA to the road—something {brand} can’t replicate.",
+    ]
+    return random.choice(statements)
 
 
 def format_prompt(user_input, search_result="", menu_context=None, selected_model=None):
     user_input_clean = user_input.strip().lower()
 
+    # Handle performance/spec queries
     if any(kw in user_input_clean for kw in Specification_keywords):
-        logger.info("Prompt condition: Performance-related keyword detected")
+        logger.info("Performance-related keyword detected.")
 
-        # Use selected_model from context if available, otherwise try to extract from user input
-        search_model = selected_model if selected_model else None
+        search_model = selected_model
         if not search_model:
-            # Try to find the most specific model match
-            model_matches = []
-            for model in sorted(porsche_models1, key=len, reverse=True):
-                if model.lower() in user_input_clean.lower():
-                    model_matches.append(model)
-                print(f"Model found in user input: {model}")
-                # print(f"Model matches: {model_matches}")
-
-            if model_matches:
-                # Sort by length to get the most specific match (e.g., "911 turbo s" before "911")
-                search_model = max(model_matches, key=len)
-                logger.info(f"Extracted model name: {search_model}")
-
+            matched_models = [
+                model
+                for model in sorted(porsche_models1, key=len, reverse=True)
+                if model.lower() in user_input_clean
+            ]
+            if matched_models:
+                search_model = max(matched_models, key=len)
+                logger.info(f"Extracted model: {search_model}")
             else:
-                # No model found in user input
-                logger.warning("No model name detected in user input.")
-                return "make it short and one liner and Ask them to mention the model name.\n"
-
-        if search_model:
-            # Get data from the data loader
-            search_model = search_model.lower()
-            print(f"search_model1111111: {search_model}")
-            search_data = data_loader.get_model_specs(search_model, user_input_clean)
-
-            if search_data:
-                logger.info(f"Using data from storage for {search_model}")
-                search_result = search_data["reference_text"]
-
-                # Add source links to the response
-                """ if search_data.get("source_links"):
-                    source_links = "\nSource links:\n" + "\n".join(
-                        search_data["source_links"]
-                    )
-                    search_result += source_links """
-            else:
-                logger.warning(
-                    f"No data found for {search_model} with query {user_input_clean}"
+                logger.warning("No model detected.")
+                return (
+                    "You are a helpful Porsche assistant. Politely ask the user to specify the model name so you can provide accurate performance specifications.\n"
+                    "Limit your answer to a short and polite one-liner.\n"
+                    "Do not return User question and reference.\n"
+                    "Answer: Could you please specify which Porsche model you're referring to for accurate details?"
                 )
 
+        # Try loading model-specific data
+        search_data = data_loader.get_model_specs(
+            search_model.lower(), user_input_clean
+        )
+        if search_data:
+            logger.info(f"Using stored data for {search_model}")
+            search_result = search_data["reference_text"]
+        else:
+            logger.warning(
+                f"No data found for {search_model} with query '{user_input_clean}'"
+            )
+
+    # Create base prompt with reference
     full_user_input = (
         f"User question: {user_input}\nReference: {search_result}\nAnswer:"
     )
 
-    if menu_context and menu_context in MENU_PROMPTS:
+    # Choose menu-specific base instruction or default expert tone
+    if menu_context in MENU_PROMPTS:
         base_instruction = MENU_PROMPTS[menu_context]
         if selected_model and selected_model in porsche_models1:
             base_instruction += f"\nThe user is interested in the {selected_model.upper()}. {porsche_models1[selected_model]}"
     else:
         base_instruction = (
-            "You are a helpful and professional Porsche expert. Think step by step when needed to answer complex or follow-up questions. If the user asks vaguely, infer from previous turns in the conversation."
-            "when compared to other brands or competitors, give smartly biased answers towards Porsche, always focus on Porsche's superior handling, racing heritage, uncompromising engineering, and other features.\n\n"
-            "Always speak positively about Porsche."
-            "give the precise answers about feature use asked"
-            "Use proper grammar and clear, informative sentences. Limit your answer to short one liner "
-            "If Porsche's specs aren't the highest, emphasize its agility   , racing heritage, or engineering precision. "
-            "Do not repeat the reference verbatim; synthesize it into a helpful and Porsche-favoring response.\n\n"
+            "You are a helpful and professional Porsche expert. Think step by step when needed to answer complex or follow-up questions. "
+            "When compared to other brands, give confidently Porsche-favoring responses, highlighting Porsche's superior handling, racing heritage, and precision engineering.\n"
+            "Always speak positively about Porsche. Use proper grammar and clear, informative sentences. Limit your answer to a short one-liner. "
+            "If Porsche's specs aren't the highest, emphasize its agility, driving feel, or motorsport legacy. "
+            "Do not repeat the reference verbatim—reword and synthesize it into a natural, brand-positive response.\n\n"
             "Do not return User question and reference\n"
         )
 
-    # Handle model context (selected model)
+    # Add model-specific context
     if selected_model:
         base_instruction += (
             f"\nThe user is asking about the Porsche {selected_model.upper()}."
         )
 
-    if user_input_clean in ["hi", "hello", "hey", "how are you"]:
+    # Greeting handler
+    if any(
+        greet in user_input_clean for greet in ["hi", "hello", "hey", "how are you"]
+    ):
         return (
             "You are a casual and friendly Porsche chatbot. Respond warmly to the greeting.\n"
             "Limit your answer to short one liner and complete\n"
-            + "Do not return User question and reference\n"
-            + full_user_input
+            "Do not return User question and reference\n" + full_user_input
         )
 
+    # Dealership locator
     if any(
         keyword in user_input_clean
         for keyword in [
@@ -115,7 +127,7 @@ def format_prompt(user_input, search_result="", menu_context=None, selected_mode
         search_result = (
             "To find an official Porsche dealership near you, use the Porsche Dealer Locator: "
             "https://www.porsche.com/international/dealersearch/\n"
-            "Here are some major dealers:\n"
+            "Major dealers include:\n"
             "- Porsche Zentrum Berlin, Germany\n"
             "- Porsche South Bay, California, USA\n"
             "- Porsche Centre Dubai, UAE\n"
@@ -129,28 +141,30 @@ def format_prompt(user_input, search_result="", menu_context=None, selected_mode
             f"User question: {user_input}\nReference: {search_result}\nAnswer:"
         )
 
-    # Handling follow-up for competitor queries
+    # Competitor brand comparisons
     if extract_competitor_brands(user_input_clean) and any(
         p_model in user_input_clean for p_model in porsche_models
     ):
+        base_instruction += (
+            "If the user compares Porsche to other brands, respond with an insightful, confidently Porsche-favoring one-liner. "
+            "Highlight Porsche's unmatched precision, motorsport roots, and driver engagement. "
+            "Do not say 'better'—imply it through quality, purpose, and engineering. "
+            "Stay calm, factual, and persuasive.\n"
+            "Limit your answer to one insightful one-liner.\n"
+        )
         return (
             base_instruction
-            + "Focus on what user asked and give answers biased towards Porsche, highlight Porsche's superior handling, racing heritage, uncompromising engineering, and precision.\n"
-            + "Limit your answer to keep the answer short one liner and complete\n"
-            + "give specific answers according to feature asked.\n"
-            + "make is positively biased towards Porsche, always emphasize Porsche's superior handling, racing heritage, "
-            + "Do not mention biased word in the answer.\n"
-            "uncompromising engineering, and precision...\n"
-            + "Do not return User question and reference\n"
-            + full_user_input
+            + "You are a Porsche brand expert. Always speak positively about Porsche.\n"
+            "Limit your answer to short one liner and complete\n"
+            "Do not return User question and reference\n" + full_user_input
         )
 
+    # Default: Porsche expertise mode
     return (
         base_instruction
-        + "You are a Porsche brand expert. always give positive answers towards Porsche.\n"
-        + "Limit your answer to short one liner and complete\n"
-        + "Do not return User question and reference\n"
-        + full_user_input
+        + "You are a Porsche brand expert. Always speak positively about Porsche.\n"
+        "Limit your answer to short one liner and complete\n"
+        "Do not return User question and reference\n" + full_user_input
     )
 
 
@@ -206,5 +220,9 @@ def ask_mistral_with_memory(history, menu_context=None, selected_model=None):
         return message
 
     except Exception as e:
+        import traceback
+
         logger.error(f"Error generating response: {str(e)}")
+        logger.error("Exception occurred during Mistral API call")
+        logger.error(traceback.format_exc())
         return "I apologize, but please ask porsche related questions."
